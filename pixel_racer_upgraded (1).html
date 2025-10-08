@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pixel Racer — Full In-Game Menu</title>
+  <style>
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;color:#e6eef6;background:#081226;overflow:hidden}
+    canvas{width:100vw;height:100vh;display:block;background:#091427;image-rendering:pixelated;cursor:pointer}
+    #ui{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;pointer-events:none}
+    .menu-btn{pointer-events:auto;background:#ffd166;color:#000;border:none;padding:10px 24px;margin:8px;border-radius:10px;font-size:18px;cursor:pointer;transition:transform .1s}
+    .menu-btn:hover{transform:scale(1.05)}
+    .title{font-size:32px;font-weight:700;color:#ffd166;text-shadow:0 0 10px rgba(255,209,102,.3)}
+    .small{font-size:13px;color:#9fb0c8;margin-top:12px}
+  </style>
+</head>
+<body>
+  <canvas id="game" width="960" height="540"></canvas>
+  <div id="ui"></div>
+
+<script>
+const canvas=document.getElementById('game');const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;const ui=document.getElementById('ui');
+const SAVE_KEY='pixel_racer_menu_v2';
+let state={coins:200,selectedCar:'rally',cars:{rally:{name:'Rally',color:'#4af',owned:true},slick:{name:'Slick GT',color:'#c84',owned:false,price:500},drift:{name:'Drifter',color:'#6fa',owned:false,price:750}},upgrades:{engine:1,turbo:0,tires:1,nitro:0},screen:'main'};
+
+function drawBg(){ctx.fillStyle='#081828';ctx.fillRect(0,0,canvas.width,canvas.height);for(let x=0;x<canvas.width;x+=16){for(let y=0;y<canvas.height;y+=16){ctx.fillStyle=((x+y)%32===0)?'#10263f':'#0b2b46';ctx.fillRect(x,y,16,16);}}}
+
+function showMainMenu(){ui.innerHTML='';ui.innerHTML=`<div class='title'>PIXEL RACER</div>
+  <button class='menu-btn' onclick='gotoScreen("race")'>Quick Race</button>
+  <button class='menu-btn' onclick='gotoScreen("garage")'>Garage</button>
+  <button class='menu-btn' onclick='gotoScreen("upgrades")'>Upgrades</button>
+  <button class='menu-btn' onclick='gotoScreen("help")'>Help</button>
+  <div class='small'>Coins: ${state.coins}</div>`;drawBg();drawCarPreview(state.selectedCar,canvas.width/2-40,canvas.height/2+60,1.6,state.cars[state.selectedCar].color);}
+
+function gotoScreen(s){state.screen=s;updateUI();}
+function updateUI(){drawBg();ui.innerHTML='';if(state.screen==='main')return showMainMenu();
+  if(state.screen==='garage'){ui.innerHTML=`<div class='title'>Garage</div>${Object.keys(state.cars).map(k=>{const c=state.cars[k];return`<button class='menu-btn' onclick='selectCar("${k}")'>${c.name} ${state.selectedCar===k?'✓':''}</button>`}).join('')}<button class='menu-btn' onclick='gotoScreen("main")'>Back</button>`;drawCarPreview(state.selectedCar,canvas.width/2-40,canvas.height/2+40,1.6,state.cars[state.selectedCar].color);}
+  if(state.screen==='upgrades'){ui.innerHTML=`<div class='title'>Upgrades</div>${Object.keys(state.upgrades).map(k=>`<button class='menu-btn' onclick='buyUpgrade("${k}")'>${k} Lvl ${state.upgrades[k]}</button>`).join('')}<button class='menu-btn' onclick='gotoScreen("main")'>Back</button>`;}
+  if(state.screen==='help'){ui.innerHTML=`<div class='title'>Controls</div><div class='small'>Space = Accelerate/Nitro<br>A/D = Steer (cosmetic)<br>Enter = Start Race</div><button class='menu-btn' onclick='gotoScreen("main")'>Back</button>`;}
+  if(state.screen==='race'){ui.innerHTML=`<div class='title'>Race Mode</div><button class='menu-btn' onclick='startRace()'>Start!</button><button class='menu-btn' onclick='gotoScreen("main")'>Back</button>`;drawCarPreview(state.selectedCar,canvas.width/2-40,canvas.height/2+40,1.6,state.cars[state.selectedCar].color);}
+}
+
+function drawCarPreview(k,x,y,s,c){ctx.fillStyle='#000';ctx.fillRect(x-28*s,y+12*s,56*s,8*s);ctx.fillStyle=c;ctx.fillRect(x-24*s,y-8*s,48*s,12*s);ctx.fillRect(x-14*s,y-16*s,28*s,8*s);ctx.fillStyle='#000';ctx.fillRect(x-18*s,y+6*s,10*s,8*s);ctx.fillRect(x+8*s,y+6*s,10*s,8*s);ctx.fillStyle='#bfe';ctx.fillRect(x-6*s,y-14*s,12*s,5*s);}
+
+function selectCar(k){state.selectedCar=k;save();updateUI();}
+function buyUpgrade(k){state.upgrades[k]++;state.coins=Math.max(0,state.coins-100);save();updateUI();}
+
+function startRace(){ui.innerHTML='';drawBg();let pos=0,speed=0;function step(){drawBg();ctx.fillStyle='#fff';ctx.font='20px monospace';ctx.fillText('Racing...',40,60);ctx.fillText('Speed '+Math.round(speed)+' km/h',40,90);drawCarPreview(state.selectedCar,100+pos,360,1.2,state.cars[state.selectedCar].color);pos+=2+Math.random()*2;speed+=1;if(pos>canvas.width-200){state.coins+=100;save();gotoScreen('main');return;}requestAnimationFrame(step);}step();}
+
+function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(state));}
+function load(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s)state=Object.assign(state,s);}catch(e){} }
+load();updateUI();
+</script>
+</body>
+</html>
